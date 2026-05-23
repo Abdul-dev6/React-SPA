@@ -1,14 +1,18 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "../FireBase/Firebase.js";
+import { useAuth } from "../context/AuthContext";
 
 function EditProduct() {
   const { id } = useParams();
+  const navigate = useNavigate();
+  const { currentUser } = useAuth();
 
   const [productName, setProductName] = useState("");
   const [price, setPrice] = useState("");
   const [quantity, setQuantity] = useState("");
+  const [authorized, setAuthorized] = useState(false);
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -16,17 +20,26 @@ function EditProduct() {
       const docSnap = await getDoc(docRef);
 
       if (docSnap.exists()) {
-        setProductName(docSnap.data().productName);
-        setPrice(docSnap.data().price);
-        setQuantity(docSnap.data().quantity);
+        const data = docSnap.data();
+        if (currentUser.role === "admin" || currentUser.uid === data.createdBy) {
+          setAuthorized(true);
+          setProductName(data.productName);
+          setPrice(data.price);
+          setQuantity(data.quantity);
+        } else {
+          alert("Access Denied: You cannot edit this product.");
+          navigate("/items");
+        }
       }
     };
 
     fetchProduct();
-  }, [id]);
+  }, [id, currentUser, navigate]);
 
   const handleUpdate = async (e) => {
     e.preventDefault();
+
+    if (!authorized) return;
 
     const docRef = doc(db, "products", id);
 
@@ -37,7 +50,10 @@ function EditProduct() {
     });
 
     alert("Product Updated Successfully");
+    navigate("/items");
   };
+
+  if (!authorized) return <div className="min-h-screen flex items-center justify-center bg-gray-100">Loading...</div>;
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
@@ -47,7 +63,6 @@ function EditProduct() {
         </h2>
 
         <form onSubmit={handleUpdate} className="space-y-5">
-          {/* Product Name */}
           <input
             value={productName}
             onChange={(e) => setProductName(e.target.value)}
@@ -55,7 +70,6 @@ function EditProduct() {
             placeholder="Product Name"
           />
 
-          {/* Price */}
           <input
             value={price}
             onChange={(e) => setPrice(e.target.value)}
@@ -63,7 +77,6 @@ function EditProduct() {
             placeholder="Price"
           />
 
-          {/* Quantity */}
           <input
             value={quantity}
             onChange={(e) => setQuantity(e.target.value)}
@@ -71,7 +84,6 @@ function EditProduct() {
             placeholder="Quantity"
           />
 
-          {/* Button */}
           <button
             type="submit"
             className="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition duration-200"

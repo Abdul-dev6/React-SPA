@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { collection, addDoc } from "firebase/firestore";
 import { db } from "../FireBase/Firebase.js";
+import { useAuth } from "../context/AuthContext";
 
 function CreateProduct() {
   const [productName, setProductName] = useState("");
@@ -8,6 +9,7 @@ function CreateProduct() {
   const [quantity, setQuantity] = useState("");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const { currentUser } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -17,6 +19,9 @@ function CreateProduct() {
       productName,
       price,
       quantity,
+      createdBy: currentUser.uid,
+      createdByEmail: currentUser.email,
+      createdAt: new Date(),
     });
 
     setLoading(false);
@@ -45,7 +50,6 @@ function CreateProduct() {
         {/* Body */}
         <div className="bg-white rounded-b-2xl px-8 py-8 shadow-2xl">
           <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Product Name */}
             <div>
               <label className="block text-xs font-semibold tracking-widest text-gray-400 uppercase mb-2">
                 Product Name
@@ -65,9 +69,7 @@ function CreateProduct() {
               </div>
             </div>
 
-            {/* Price & Quantity Row */}
             <div className="grid grid-cols-2 gap-4">
-              {/* Price */}
               <div>
                 <label className="block text-xs font-semibold tracking-widest text-gray-400 uppercase mb-2">
                   Price ($)
@@ -87,7 +89,6 @@ function CreateProduct() {
                 </div>
               </div>
 
-              {/* Quantity */}
               <div>
                 <label className="block text-xs font-semibold tracking-widest text-gray-400 uppercase mb-2">
                   Quantity
@@ -108,14 +109,12 @@ function CreateProduct() {
               </div>
             </div>
 
-            {/* Success Message */}
             {success && (
               <div className="flex items-center gap-2 bg-green-50 border border-green-200 text-green-700 text-sm font-medium px-4 py-3 rounded-xl">
                 <span>✅</span> Product added successfully!
               </div>
             )}
 
-            {/* Submit Button */}
             <button
               type="submit"
               disabled={loading}

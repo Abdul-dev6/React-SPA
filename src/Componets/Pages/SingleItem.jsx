@@ -1,12 +1,16 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../FireBase/Firebase.js";
+import { useAuth } from "../context/AuthContext";
 
 function SingleProduct() {
   const { id } = useParams();
+  const navigate = useNavigate();
+  const { currentUser } = useAuth();
 
   const [product, setProduct] = useState(null);
+  const [authorized, setAuthorized] = useState(false);
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -14,12 +18,21 @@ function SingleProduct() {
       const docSnap = await getDoc(docRef);
 
       if (docSnap.exists()) {
-        setProduct(docSnap.data());
+        const data = docSnap.data();
+        if (currentUser.role === "admin" || currentUser.uid === data.createdBy) {
+          setAuthorized(true);
+          setProduct(data);
+        } else {
+          alert("Access Denied: You cannot view this product.");
+          navigate("/items");
+        }
       }
     };
 
     fetchProduct();
-  }, [id]);
+  }, [id, currentUser, navigate]);
+
+  if (!authorized) return <div className="min-h-screen flex items-center justify-center bg-gray-100">Loading...</div>;
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">

@@ -1,13 +1,21 @@
 import { useEffect, useState } from "react";
-import { collection, getDocs, deleteDoc, doc } from "firebase/firestore";
+import { collection, getDocs, deleteDoc, doc, query, where } from "firebase/firestore";
 import { Link } from "react-router-dom";
 import { db } from "../FireBase/Firebase.js";
+import { useAuth } from "../context/AuthContext";
 
 function ViewProducts() {
   const [products, setProducts] = useState([]);
+  const { currentUser } = useAuth();
 
   const fetchProducts = async () => {
-    const querySnapshot = await getDocs(collection(db, "products"));
+    let q;
+    if (currentUser.role === "admin") {
+      q = collection(db, "products");
+    } else {
+      q = query(collection(db, "products"), where("createdBy", "==", currentUser.uid));
+    }
+    const querySnapshot = await getDocs(q);
 
     const data = querySnapshot.docs.map((doc) => ({
       id: doc.id,
@@ -38,23 +46,19 @@ function ViewProducts() {
             key={product.id}
             className="bg-white shadow-lg rounded-2xl p-6 hover:shadow-xl transition"
           >
-            {/* Product Name */}
             <h3 className="text-xl font-semibold text-gray-800 mb-2">
               {product.productName}
             </h3>
 
-            {/* Price */}
             <p className="text-gray-600">
               💰 Price: <span className="font-medium">{product.price}</span>
             </p>
 
-            {/* Quantity */}
             <p className="text-gray-600 mb-4">
               📦 Quantity:{" "}
               <span className="font-medium">{product.quantity}</span>
             </p>
 
-            {/* Buttons */}
             <div className="flex flex-wrap gap-2">
               <Link
                 to={`/product/${product.id}`}
@@ -63,19 +67,23 @@ function ViewProducts() {
                 View
               </Link>
 
-              <Link
-                to={`/edit/${product.id}`}
-                className="bg-green-500 text-white px-3 py-1 rounded-lg text-sm hover:bg-green-600"
-              >
-                Edit
-              </Link>
+              {(currentUser.role === "admin" || currentUser.uid === product.createdBy) && (
+                <>
+                  <Link
+                    to={`/edit/${product.id}`}
+                    className="bg-green-500 text-white px-3 py-1 rounded-lg text-sm hover:bg-green-600"
+                  >
+                    Edit
+                  </Link>
 
-              <button
-                onClick={() => handleDelete(product.id)}
-                className="bg-red-500 text-white px-3 py-1 rounded-lg text-sm hover:bg-red-600"
-              >
-                Delete
-              </button>
+                  <button
+                    onClick={() => handleDelete(product.id)}
+                    className="bg-red-500 text-white px-3 py-1 rounded-lg text-sm hover:bg-red-600"
+                  >
+                    Delete
+                  </button>
+                </>
+              )}
             </div>
           </div>
         ))}
